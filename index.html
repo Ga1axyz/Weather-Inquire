@@ -309,18 +309,18 @@
                     var ip = returnCitySN["cip"];
                     axios.get("https://restapi.amap.com/v3/ip?key=&ip="+ip)
                     .then(function (response){
-                        if(response.data.code != 200){
-                            weather.errMsg = 1;
-                            weather.mainPage = 0;
-                            return;
-                        }
-                        weather.errMsg = 0;
-                        weather.mainPage = 1;
                         weather.adcode = response.data.adcode;
                         weather.cityName = response.data.city;
                         console.log(weather.cityName);
                         axios.get("https://geoapi.qweather.com/v2/city/lookup?key=&location="+weather.adcode)
                         .then(function (response){
+                            if(response.data.code != 200){
+                                weather.errMsg = 1;
+                                weather.mainPage = 0;
+                                return;
+                            }
+                            weather.errMsg = 0;
+                            weather.mainPage = 1;
                             weather.hfid = response.data.location[0].id;
                             axios.get("https://devapi.qweather.com/v7/weather/now?key=&location="+weather.hfid)
                             .then(function (response){
