@@ -10,4 +10,8 @@
 
 [![WMuu5Q.png](https://z3.ax1x.com/2021/07/16/WMuu5Q.png)](https://imgtu.com/i/WMuu5Q)
 
+If 当日免费 API 查询次数已用完
+
+[![WMyBAU.png](https://z3.ax1x.com/2021/07/16/WMyBAU.png)](https://imgtu.com/i/WMyBAU)
+
 由于涉及到天气查询API接口所需要的KEY的问题，本项目暂不提供在线演示，感兴趣的朋友可以自行去相应网站（高德&和风）申请KEY填入代码后查看在线效果
