@@ -4,7 +4,7 @@
  * @Author: Ga1axy_z
  * @Date: 2021-07-14 20:43:20
  * @LastEditors: Ga1axy_z
- * @LastEditTime: 2021-07-16 15:54:24
+ * @LastEditTime: 2021-07-16 18:19:59
 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -65,12 +65,9 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <!-- <div class="alert alert-danger alert-dismissible fade show inquirefail5 inquirefail" role="alert" style="display: none;">
-                <h4 class="alert-heading">很遗憾！</h4><hr>本网站因站长经济条件暂时还没有到达巅峰造极的地步，因此只能使用免费天气API<br>当你看到这句话的时候，意味着今天的查询次数已用光😭！<br>So，欢迎明天API访问量重置后再来！
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div> -->
+            <div class="alert alert-danger alert-dismissible fade show inquirefail5 inquirefail" role="alert" v-if="errMsg">
+                <h4 class="alert-heading">很遗憾！</h4><hr>本网站因站长<strong>经济条件暂时还没有到达巅峰造极的地步</strong>，因此只能使用免费天气 API 接口<br><br>当你看到这句话的时候，意味着今天的查询次数已用光😭！<br><br>So，欢迎明天 API 访问量重置后再来！
+            </div>
             <div class="alert alert-warning alert-dismissible fade show inquirefail6 inquirefail" role="alert" style="display: none;">
                 <strong>诶，</strong> 查询字段不能为空!
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -221,16 +218,17 @@
                 hidePage: 0,    // 用来在无数据的情况下显示替代页面
                 Location:"",    // 用户输入的地区
                 quality:"", // 用来改变空气质量气泡颜色
-                weekcasts:[],   // 用来存储高德4日天气预报数据，丰富数据量（由于接口问题，此项只能提供ip地址所在位置的天气数据，手动查询不可用）
+                weekcasts:[{"date":"","week":"","dayweather":"","nightweather":"","daytemp":"","nighttemp":"","daywind":"","nightwind":"","daypower":"","nightpower":""},{"date":"","week":"","dayweather":"","nightweather":"","daytemp":"","nighttemp":"","daywind":"","nightwind":"","daypower":"","nightpower":""},{"date":"","week":"","dayweather":"","nightweather":"","daytemp":"","nighttemp":"","daywind":"","nightwind":"","daypower":"","nightpower":""},{"date":"","week":"","dayweather":"","nightweather":"","daytemp":"","nighttemp":"","daywind":"","nightwind":"","daypower":"","nightpower":""},{"date":"","week":"","dayweather":"","nightweather":"","daytemp":"","nighttemp":"","daywind":"","nightwind":"","daypower":"","nightpower":""}],   // 用来存储高德4日天气预报数据，丰富数据量（由于接口问题，此项只能提供ip地址所在位置的天气数据，手动查询不可用）
                 week:"", // 用来存储后天是周几
+                errMsg: 0,  // 用来在查询次数用完时显示提示信息
                 updateTime:"",  // 数据更新时间
                 Adm:"", // 用户输入的上级行政区域
                 adcode:"",  // adcode编码
                 hfid:"",    // 和风城市编码 id
                 cityName:"",    // 城市名
-                todayWeather:[],    // 今日天气
-                moreWeather:[],  // 三日天气
-                todayAqi:[] // 今日空气质量
+                todayWeather:{"obsTime":"","temp":"","feelsLike":"","icon":"","text":"","wind360":"","windDir":"","windScale":"","windSpeed":"","humidity":"","precip":"","pressure":"","vis":"","cloud":"","dew":""},    // 今日天气
+                moreWeather:[{"fxDate":"","sunrise":"","sunset":"","moonrise":"","moonset":"","moonPhase":"","tempMax":"","tempMin":"","iconDay":"","textDay":"","iconNight":"","textNight":"","wind360Day":"","windDirDay":"","windScaleDay":"","windSpeedDay":"","wind360Night":"","windDirNight":"","windScaleNight":"","windSpeedNight":"","humidity":"","precip":"","pressure":"","vis":"","cloud":"","uvIndex":""},{"fxDate":"","sunrise":"","sunset":"","moonrise":"","moonset":"","moonPhase":"","tempMax":"","tempMin":"","iconDay":"","textDay":"","iconNight":"","textNight":"","wind360Day":"","windDirDay":"","windScaleDay":"","windSpeedDay":"","wind360Night":"","windDirNight":"","windScaleNight":"","windSpeedNight":"","humidity":"","precip":"","pressure":"","vis":"","cloud":"","uvIndex":""},{"fxDate":"","sunrise":"","sunset":"","moonrise":"","moonset":"","moonPhase":"","tempMax":"","tempMin":"","iconDay":"","textDay":"","iconNight":"","textNight":"","wind360Day":"","windDirDay":"","windScaleDay":"","windSpeedDay":"","wind360Night":"","windDirNight":"","windScaleNight":"","windSpeedNight":"","humidity":"","precip":"","pressure":"","vis":"","cloud":"","uvIndex":""}],  // 三日天气
+                todayAqi:{"pubTime":"","aqi":"","level":"","category":"","primary":"","pm10":"","pm2p5":"","no2":"","so2":"","co":"","o3":""} // 今日空气质量
             },
             mounted: function() {
                 this.weatherInit();
@@ -288,6 +286,8 @@
                                     console.log(weather.todayAqi);
                                 }else{
                                     $(".inquirefail3").fadeIn("slow");
+                                    weather.todayAqi.aqi = "暂无数据";
+                                    weather.todayAqi.category = "";
                                     weather.mainPage = 1;
                                     weather.hidePage = 0;
                                     return;
@@ -309,6 +309,13 @@
                     var ip = returnCitySN["cip"];
                     axios.get("https://restapi.amap.com/v3/ip?key=&ip="+ip)
                     .then(function (response){
+                        if(response.data.code != 200){
+                            weather.errMsg = 1;
+                            weather.mainPage = 0;
+                            return;
+                        }
+                        weather.errMsg = 0;
+                        weather.mainPage = 1;
                         weather.adcode = response.data.adcode;
                         weather.cityName = response.data.city;
                         console.log(weather.cityName);
