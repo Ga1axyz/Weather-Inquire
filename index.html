@@ -1,0 +1,377 @@
+<!--
+ * @Descripttion: 
+ * @version: 1.0
+ * @Author: Ga1axy_z
+ * @Date: 2021-07-14 20:43:20
+ * @LastEditors: Ga1axy_z
+ * @LastEditTime: 2021-07-16 15:54:24
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- Bootstrap 必须的 meta 标签 -->
+    <meta charset="utf-8">
+    <!-- 让 viewport（视口）支持响应式布局 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Weather Inquire By Ga1axy_z</title>
+    <link rel="stylesheet" type="text/css" href="./style.css">
+    <!-- Bootstrap 的 CSS 文件 -->
+    <link rel="stylesheet" type="text/css" href="./bootstrap.css">
+    <script src="./vue.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.1.2/echarts.common.js"></script>
+    <script src="http://pv.sohu.com/cityjson?ie=utf-8"></script> 
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+
+<!--
+1、高德IP定位API（根据ip地址获取adcode）：
+    https://restapi.amap.com/v3/ip?key=&ip=42.48.225.2
+2、和风查询API（根据adcode获取和风城市编码id）
+    https://geoapi.qweather.com/v2/city/lookup?key=&location=430400
+3、和风当日天气API（根据和风城市编码id获取当日天气）
+    https://devapi.qweather.com/v7/weather/now?key=&location=101250401
+4、和风3日天气API（根据和风城市编码id获取3日详细天气）
+    https://devapi.qweather.com/v7/weather/3d?key=&location=101250401
+5、和风当日空气质量API（根据和风城市编码id获取当日空气质量）
+    https://devapi.qweather.com/v7/air/now?key=&location=101250401
+-->
+
+<body>
+    <div class="weatherApp d-flex flex-column align-items-center">
+
+        <!-- 顶部弹窗 -->
+        <div class="myalert">
+            <div class="alert alert-danger alert-dismissible fade show inquirefail1 inquirefail" role="alert" style="display: none;">
+                <strong>Oops!</strong> 未根据你的IP地址获取到天气数据，请手动查询!
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="alert alert-danger alert-dismissible fade show inquirefail2 inquirefail" role="alert" style="display: none;">
+                <strong>Oops!</strong> 查询请求异常，请检查输入并重试，若仍不可用请联系管理员!
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="alert alert-warning alert-dismissible fade show inquirefail3 inquirefail" role="alert" style="display: none;">
+                <strong>Sorry，</strong> 暂无该地区空气质量数据!
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="alert alert-warning alert-dismissible fade show inquirefail4 inquirefail" role="alert" style="display: none;">
+                <strong>Sorry，</strong> 暂无该地区天气数据!
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <!-- <div class="alert alert-danger alert-dismissible fade show inquirefail5 inquirefail" role="alert" style="display: none;">
+                <h4 class="alert-heading">很遗憾！</h4><hr>本网站因站长经济条件暂时还没有到达巅峰造极的地步，因此只能使用免费天气API<br>当你看到这句话的时候，意味着今天的查询次数已用光😭！<br>So，欢迎明天API访问量重置后再来！
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div> -->
+            <div class="alert alert-warning alert-dismissible fade show inquirefail6 inquirefail" role="alert" style="display: none;">
+                <strong>诶，</strong> 查询字段不能为空!
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 今日天气 -->
+        <div class="todayWeather d-flex flex-column align-items-center" v-if="mainPage">
+            <div class="topContent d-flex justify-content-between">
+                <div class="d-flex align-items-end" style="width: 65%;">
+                    <div style="font-size: 1.5em;">{{cityName}}</div>
+                    <div style="margin-left: 4%; width:70%;">今天：{{moreWeather[0].textDay}} {{moreWeather[0].tempMin}}°~{{moreWeather[0].tempMax}}°C<span style="margin-left: 3%;">云量{{moreWeather[0].cloud}}%</span></div>
+                </div>
+                <div class="d-flex align-items-end" style="width: 35%;">
+                    <div style="margin-left: 4%;">数据观测时间：</div>
+                    <div style="margin-left: 5%;">{{moreWeather[0].fxDate}} {{updateTime}}</div>
+                </div>
+            </div>
+            <div class="centerPart d-flex justify-content-between align-items-center">
+                <div class="centerContent d-flex align-items-center">
+                    <div class="nowTemp">{{todayWeather.temp}}°</div>
+                    <div class="otherInfo d-flex flex-column">
+                        <div class="nowAqi" style="margin: 0 2%; margin-bottom: 3%;">
+                            <span class="badge badge-pill badge-success" v-bind:style="quality">{{todayAqi.aqi}} {{todayAqi.category}}</span>
+                        </div>
+                        <div class="nowOtherInfo d-flex align-items-center">
+                            <img v-bind:src="'./images/' + todayWeather.icon + '.png'" class="nowIcon">
+                            <div class="nowWeather" style="margin: 0 2%;">{{todayWeather.text}}</div>
+                            <div class="nowWindDir" style="margin: 0 2%;">{{todayWeather.windDir}}</div>
+                            <div class="nowWindScale" style="margin: 0 2%;">{{todayWeather.windScale}}级</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-outline-success my-2 my-sm-0 changePageBtn" type="submit" @click="changePage">查询</button>
+            </div>
+            <div class="float-left" style="width: 100%;">
+                <div class="bottomContent d-flex justify-content-between">
+                    <div>相对湿度{{todayWeather.humidity}}%</div>
+                    <div>大气压强{{todayWeather.pressure}}</div>
+                    <div>日出时间{{moreWeather[0].sunrise}}</div>
+                    <div>日落时间{{moreWeather[0].sunset}}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 三日天气 -->
+        <div class="moreWeather" v-if="mainPage">
+            <div class="card-deck">
+                <div class="card" style="background-color: #ffffffc0;">
+                    <div class="card-body">
+                        <p class="card-text"><small class="text-muted">今天</small></p>
+                        <h6 class="card-title">{{moreWeather[0].fxDate}}</h6>
+                        <div class="detailWeather">
+                            白天 {{moreWeather[0].textDay}} <img v-bind:src="'./blackimages/' + moreWeather[0].iconDay + '.png'" class="cardIcon"> 
+                            晚间 {{moreWeather[0].textNight}} <img v-bind:src="'./blackimages/' + moreWeather[0].iconNight + '.png'" class="cardIcon">
+                        </div>
+                        <div class="detailWeather">温度 {{moreWeather[0].tempMin}}° ~ {{moreWeather[0].tempMax}}°C</div>
+                        <div class="detailWeather">日出 {{moreWeather[0].sunrise}} 日落 {{moreWeather[0].sunset}}</div>
+                        <div class="detailWeather">月升 {{moreWeather[0].moonrise}} 月落 {{moreWeather[0].moonset}}</div>
+                        <div class="detailWeather">月相 {{moreWeather[0].moonPhase}}</div>
+                        <div class="detailWeather">白天的风 {{moreWeather[0].windDirDay}} {{moreWeather[0].windScaleDay}}级 风速 {{moreWeather[0].windSpeedDay}}Km/H</div>
+                        <div class="detailWeather">夜间的风 {{moreWeather[0].windDirNight}} {{moreWeather[0].windScaleDay}}级 风速 {{moreWeather[0].windSpeedNight}}Km/H</div>
+                        <div class="detailWeather">相对湿度 {{moreWeather[0].humidity}}%</div>
+                        <div class="detailWeather">大气压强 {{moreWeather[0].pressure}}</div>
+                        <div class="detailWeather">紫外线强度指数 {{moreWeather[0].uvIndex}} <span style="margin-left: 15px;">能见度 {{moreWeather[0].vis}}Km</span></div>
+                        <div class="detailWeather">当天总降水量 {{moreWeather[0].precip}}mm <span style="margin-left: 10px;">云量 {{moreWeather[0].cloud}}%</span></div>
+                    </div>
+                </div>
+                <div class="card" style="background-color: #ffffffc0;">
+                    <div class="card-body">
+                        <p class="card-text"><small class="text-muted">明天</small></p>
+                        <h6 class="card-title">{{moreWeather[1].fxDate}}</h6>
+                        <div class="detailWeather">
+                            白天 {{moreWeather[1].textDay}} <img v-bind:src="'./blackimages/' + moreWeather[1].iconDay + '.png'" class="cardIcon"> 
+                            晚间 {{moreWeather[1].textNight}} <img v-bind:src="'./blackimages/' + moreWeather[1].iconNight + '.png'" class="cardIcon">
+                        </div>
+                        <div class="detailWeather">温度 {{moreWeather[1].tempMin}}° ~ {{moreWeather[1].tempMax}}°C</div>
+                        <div class="detailWeather">日出 {{moreWeather[1].sunrise}} 日落 {{moreWeather[1].sunset}}</div>
+                        <div class="detailWeather">月升 {{moreWeather[1].moonrise}} 月落 {{moreWeather[1].moonset}}</div>
+                        <div class="detailWeather">月相 {{moreWeather[1].moonPhase}}</div>
+                        <div class="detailWeather">白天的风 {{moreWeather[1].windDirDay}} {{moreWeather[1].windScaleDay}}级 风速 {{moreWeather[1].windSpeedDay}}Km/H</div>
+                        <div class="detailWeather">夜间的风 {{moreWeather[1].windDirNight}} {{moreWeather[1].windScaleDay}}级 风速 {{moreWeather[1].windSpeedNight}}Km/H</div>
+                        <div class="detailWeather">相对湿度 {{moreWeather[1].humidity}}%</div>
+                        <div class="detailWeather">大气压强 {{moreWeather[1].pressure}}</div>
+                        <div class="detailWeather">紫外线强度指数 {{moreWeather[1].uvIndex}} <span style="margin-left: 15px;">能见度 {{moreWeather[1].vis}}Km</span></div>
+                        <div class="detailWeather">当天总降水量 {{moreWeather[1].precip}}mm <span style="margin-left: 10px;">云量 {{moreWeather[1].cloud}}%</span></div>
+                    </div>
+                </div>
+                <div class="card" style="background-color: #ffffffc0;">
+                    <div class="card-body">
+                        <p class="card-text"><small class="text-muted">{{week}}</small></p>
+                        <h6 class="card-title">{{moreWeather[2].fxDate}}</h6>
+                        <div class="detailWeather">
+                            白天 {{moreWeather[2].textDay}} <img v-bind:src="'./blackimages/' + moreWeather[2].iconDay + '.png'" class="cardIcon"> 
+                            晚间 {{moreWeather[2].textNight}} <img v-bind:src="'./blackimages/' + moreWeather[2].iconNight + '.png'" class="cardIcon">
+                        </div>
+                        <div class="detailWeather">温度 {{moreWeather[2].tempMin}}° ~ {{moreWeather[2].tempMax}}°C</div>
+                        <div class="detailWeather">日出 {{moreWeather[2].sunrise}} 日落 {{moreWeather[2].sunset}}</div>
+                        <div class="detailWeather">月升 {{moreWeather[2].moonrise}} 月落 {{moreWeather[2].moonset}}</div>
+                        <div class="detailWeather">月相 {{moreWeather[2].moonPhase}}</div>
+                        <div class="detailWeather">白天的风 {{moreWeather[2].windDirDay}} {{moreWeather[2].windScaleDay}}级 风速 {{moreWeather[2].windSpeedDay}}Km/H</div>
+                        <div class="detailWeather">夜间的风 {{moreWeather[2].windDirNight}} {{moreWeather[2].windScaleDay}}级 风速 {{moreWeather[2].windSpeedNight}}Km/H</div>
+                        <div class="detailWeather">相对湿度 {{moreWeather[2].humidity}}%</div>
+                        <div class="detailWeather">大气压强 {{moreWeather[2].pressure}}</div>
+                        <div class="detailWeather">紫外线强度指数 {{moreWeather[2].uvIndex}} <span style="margin-left: 15px;">能见度 {{moreWeather[2].vis}}Km</span></div>
+                        <div class="detailWeather">当天总降水量 {{moreWeather[2].precip}}mm <span style="margin-left: 10px;">云量 {{moreWeather[2].cloud}}%</span></div>
+                    </div>
+                </div>
+              </div>
+        </div>
+
+        <div class="tryAgain" v-if="hidePage">
+            <div class="jumbotron">
+                <h1 class="display-4">Location</h1>
+                <p class="lead">请输入需要查询地区的名称，支持文字、以英文逗号分隔的经度,纬度坐标（十进制）、LocationID或Adcode（仅限中国城市）。例如 location=北京 或 location=116.41,39.92</p>
+                <form class="myform2">
+                    <div class="row" style="width: 94%;">
+                        <div class="col">
+                            <input type="text" class="form-control" placeholder="Location（必填）" v-model="Location" @keyup.enter="searchInfo">
+                        </div>
+                        <div class="col">
+                            <input type="text" class="form-control" placeholder="Adm（选填）" v-model="Adm">
+                        </div>
+                        <button class="btn btn-outline-success my-2 my-sm-0" type="submit" @click="searchInfo">查询</button>
+                    </div>
+                </form>
+                <hr class="my-4">
+                <div class="alert alert-primary" role="alert">
+                    <h4 class="alert-heading">模糊搜索</h4>
+                    <p>当location传递的为文字时，支持模糊搜索，即用户可以只输入城市名称一部分进行搜索，最少一个汉字或2个字符，结果将按照相关性和Rank值进行排列。例如 location=bei，将返回与bei相关性最强的第一个结果</p>
+                </div>
+                <div class="alert alert-primary" role="alert">
+                    <h4 class="alert-heading">重名</h4>
+                    <p>当location传递的参数为文字时，可能会出现重名的城市，例如 陕西省西安市、吉林省辽源市下辖的西安区 和 黑龙江省牡丹江市下辖的西安区 ，在这种情况下，可以通过增加<strong> adm 参数 </strong>的方式进一步确定需要查询的城市或地区，例如 location=西安&adm=黑龙江</p>
+                </div>
+            </div>
+        </div>
+    
+    </div>
+    
+    <script>
+        var vm = new Vue({
+            el: ".weatherApp",
+            data: {
+                mainPage: 1,    // 用来在无数据的情况下隐藏页面
+                hidePage: 0,    // 用来在无数据的情况下显示替代页面
+                Location:"",    // 用户输入的地区
+                quality:"", // 用来改变空气质量气泡颜色
+                weekcasts:[],   // 用来存储高德4日天气预报数据，丰富数据量（由于接口问题，此项只能提供ip地址所在位置的天气数据，手动查询不可用）
+                week:"", // 用来存储后天是周几
+                updateTime:"",  // 数据更新时间
+                Adm:"", // 用户输入的上级行政区域
+                adcode:"",  // adcode编码
+                hfid:"",    // 和风城市编码 id
+                cityName:"",    // 城市名
+                todayWeather:[],    // 今日天气
+                moreWeather:[],  // 三日天气
+                todayAqi:[] // 今日空气质量
+            },
+            mounted: function() {
+                this.weatherInit();
+            },
+            methods: {
+                changePage : function(){
+                    var weather = this;
+                    weather.mainPage = 0;
+                    weather.hidePage = 1;
+                },
+                searchInfo : function(){
+                    var weather = this;
+                    axios.get("https://geoapi.qweather.com/v2/city/lookup?key=&location="+weather.Location+"&adm="+weather.Adm)
+                    .then(function (response){
+                        if(response.data.code == 200){
+                            weather.hfid = response.data.location[0].id;
+                            weather.cityName = response.data.location[0].name;
+                            axios.get("https://devapi.qweather.com/v7/weather/now?key=&location="+weather.hfid)
+                            .then(function (response){
+                                if(response.data.code == 200){
+                                    weather.todayWeather = response.data.now;
+                                    weather.updateTime = weather.todayWeather.obsTime.slice(11,16);
+                                    console.log(weather.todayWeather);
+                                }else{
+                                    $(".inquirefail4").fadeIn("slow");
+                                    return;
+                                }
+                            })
+                            axios.get("https://devapi.qweather.com/v7/weather/3d?key=&location="+weather.hfid)
+                            .then(function (response){
+                                if(response.data.code == 200){
+                                    weather.moreWeather = response.data.daily;
+                                    console.log(weather.moreWeather);
+                                }else{
+                                    $(".inquirefail4").fadeIn("slow");
+                                    return;
+                                }
+                            })
+                            axios.get("https://devapi.qweather.com/v7/air/now?key=&location="+weather.hfid)
+                            .then(function (response){
+                                if(response.data.code == 200){
+                                    weather.todayAqi = response.data.now;
+                                    if(weather.todayAqi.level == 1)
+                                        weather.quality = "background-color: #27a844";
+                                    else if(weather.todayAqi.level == 2)
+                                        weather.quality = "background-color: #f9da65;";
+                                    else if(weather.todayAqi.level == 3)
+                                        weather.quality = "background-color: #f29f39;";
+                                    else if(weather.todayAqi.level == 4)
+                                        weather.quality = "background-color: #db555e;";
+                                    else if(weather.todayAqi.level == 5)
+                                        weather.quality = "background-color: #ba3779;";
+                                    else if(weather.todayAqi.level == 6)
+                                        weather.quality = "background-color: #890b20";
+                                    console.log(weather.todayAqi);
+                                }else{
+                                    $(".inquirefail3").fadeIn("slow");
+                                    weather.mainPage = 1;
+                                    weather.hidePage = 0;
+                                    return;
+                                }
+                            })
+                        }else{
+                            if(weather.Location == "")
+                                $(".inquirefail6").fadeIn("slow");
+                            else
+                                $(".inquirefail2").fadeIn("slow"); 
+                        }
+                    })
+                    $(".inquirefail").fadeOut("fast");
+                    weather.mainPage = 1;
+                    weather.hidePage = 0;
+                },
+                weatherInit : function() {
+                    var weather = this;
+                    var ip = returnCitySN["cip"];
+                    axios.get("https://restapi.amap.com/v3/ip?key=&ip="+ip)
+                    .then(function (response){
+                        weather.adcode = response.data.adcode;
+                        weather.cityName = response.data.city;
+                        console.log(weather.cityName);
+                        axios.get("https://geoapi.qweather.com/v2/city/lookup?key=&location="+weather.adcode)
+                        .then(function (response){
+                            weather.hfid = response.data.location[0].id;
+                            axios.get("https://devapi.qweather.com/v7/weather/now?key=&location="+weather.hfid)
+                            .then(function (response){
+                                weather.todayWeather = response.data.now;
+                                weather.updateTime = weather.todayWeather.obsTime.slice(11,16);
+                                console.log(weather.todayWeather);
+                            })
+                            axios.get("https://devapi.qweather.com/v7/weather/3d?key=&location="+weather.hfid)
+                            .then(function (response){
+                                    weather.moreWeather = response.data.daily;
+                                    console.log(weather.moreWeather);
+                            })
+                            axios.get("https://devapi.qweather.com/v7/air/now?key=&location="+weather.hfid)
+                            .then(function (response){
+                                weather.todayAqi = response.data.now;
+                                if(weather.todayAqi.level == 1)
+                                    weather.quality = "background-color: #27a844";
+                                else if(weather.todayAqi.level == 2)
+                                    weather.quality = "background-color: #f9da65;";
+                                else if(weather.todayAqi.level == 3)
+                                    weather.quality = "background-color: #f29f39;";
+                                else if(weather.todayAqi.level == 4)
+                                    weather.quality = "background-color: #db555e;";
+                                else if(weather.todayAqi.level == 5)
+                                    weather.quality = "background-color: #ba3779;";
+                                else if(weather.todayAqi.level == 6)
+                                    weather.quality = "background-color: #890b20";
+                                console.log(weather.todayAqi);
+                            })
+                        })
+                        axios.get("https://restapi.amap.com/v3/weather/weatherInfo?key=&extensions=all&city="+weather.adcode)
+                        .then(function (response){
+                            weather.weekcasts = response.data.forecasts[0].casts;
+                            switch(weather.weekcasts[2].week){
+                                case "1": weather.week = "星期一"; break;
+                                case "2": weather.week = "星期二"; break;
+                                case "3": weather.week = "星期三"; break;
+                                case "4": weather.week = "星期四"; break;
+                                case "5": weather.week = "星期五"; break;
+                                case "6": weather.week = "星期六"; break;
+                                case "7": weather.week = "星期日"; break;
+                            }
+                        })
+                    })
+                    .catch(function (error){                      
+                        console.log(error);
+                        $(".inquirefail1").fadeIn("slow");
+                        weather.mainPage = 0;
+                        weather.hidePage = 1;
+                        return;
+                    })
+                    console.log(returnCitySN["cip"]);
+                }
+            }
+        })
+    </script>
+
+    <!-- jQuery 和 Bootstrap 集成包（集成了 Popper） -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.js"></script>
+    <script src="./bootstrap.bundle.js"></script>
+</body>
